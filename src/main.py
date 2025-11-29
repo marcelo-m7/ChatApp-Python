@@ -3,6 +3,7 @@ from chat.chat_interface import ChatInterface
 from dotenv import load_dotenv
 from chat.chat_app import ChatApp
 from chat.auth import AuthManager
+import os
 
 load_dotenv(".env")
 chat_app = ChatApp()
@@ -40,5 +41,15 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(main, port=8550, view=ft.AppView.WEB_BROWSER, upload_dir="uploads/", host="localhost", assets_dir="assets")
-    # ft.app(main, port=8550, view=ft.AppView.WEB_BROWSER, upload_dir="uploads/", host="0.0.0.0", assets_dir="assets") # Replit
+    # Permite configurar porta e host via variáveis de ambiente para implantação em contêineres
+    port = int(os.getenv("PORT", 8550))
+    host = os.getenv("HOST", "localhost")
+
+    ft.app(
+        main,
+        port=port,
+        view=ft.AppView.WEB_BROWSER,
+        upload_dir="uploads/",
+        host=host,
+        assets_dir="assets",
+    )
