@@ -7,9 +7,7 @@ Este projeto é um chat em tempo real desenvolvido em Python utilizando a biblio
 - Enviem mensagens privadas
 - Interajam com um assistente virtual da OpenAI na sala "Bate-papo com Assistente", mencionando `@programador` na mensagem
 
-O projeto foi desenvolvido como parte da disciplina de **Computação Móvel**.
-
-**Aluno:** [Marcelo Santos (a79433)](https://flet.dev/)
+---
 
 ## Requisitos
 Antes de executar o projeto, certifique-se de ter o Python instalado e instale as dependências necessárias:
