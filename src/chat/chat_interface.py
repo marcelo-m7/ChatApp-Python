@@ -353,6 +353,9 @@ class ChatInterface:
         if message.room_id != self.page.session.get("current_room"):
             return
 
+        assistant_response_processed = False
+        assistant_response = None
+
         if message.message_type == "chat_message":
             m = ChatMessage(message, self.on_edit, self.on_delete)
             print("Messagem enviada: \n", message)
@@ -363,13 +366,6 @@ class ChatInterface:
             self.update_users_drawer()
             self.page.update()
             return
-        
-        elif message.room_id == "programador":
-            assistant_response = self.programador_assistant.process_message(message)
-            if assistant_response:
-                ass_m = ChatMessage(assistant_response, self.on_edit, self.on_delete)
-                self.chat.controls.append(ass_m)
-                self.page.update()
 
         elif message.message_type == "file_message":
             file_ext = os.path.splitext(message.file.file_path)[1].lower()
@@ -388,11 +384,14 @@ class ChatInterface:
                 ])
 
         self.chat.controls.append(m)
-        self.page.update()
 
-        if message.room_id == "programador":
+        # Guarda explícita para garantir apenas uma resposta do assistente por evento pubsub.
+        if message.room_id == "programador" and not assistant_response_processed:
+            assistant_response_processed = True
             assistant_response = self.programador_assistant.process_message(message)
+
             if assistant_response:
                 ass_m = ChatMessage(assistant_response, self.on_edit, self.on_delete)
                 self.chat.controls.append(ass_m)
-                self.page.update()
+
+        self.page.update()
