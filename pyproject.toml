@@ -39,3 +39,8 @@ package-mode = false
 
 [tool.poetry.group.dev.dependencies]
 flet = {extras = ["all"], version = "0.27.5"}
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "--cov=chat.chat_room --cov=chat.chat_app --cov=chat.application.chat_controller --cov=assistants.utils.manager_tools --cov=server --cov-report=term-missing --cov-fail-under=60"
