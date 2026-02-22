@@ -1,6 +1,6 @@
 # Documentation
 
-This folder stores architecture, planning, quality, and evidence artifacts for the project evolution plan.
+Esta pasta centraliza artefatos de arquitetura, decisões técnicas, qualidade e execução.
 
 - [architecture](architecture/README.md)
 - [agents](agents/README.md)
