@@ -52,3 +52,14 @@ Isso disponibilizará os arquivos compartilhados no chat através de um endpoint
 - **Flet**: Framework para construção da interface gráfica
 - **Uvicorn**: Servidor ASGI para disponibilizar os arquivos compartilhados
 - **OpenAI API**: Para responder mensagens com o assistente virtual
+
+## Documentação
+- Índice geral: [`docs/README.md`](docs/README.md)
+- Domínios:
+  - [Architecture](docs/architecture/README.md)
+  - [Agents](docs/agents/README.md)
+  - [Tasks](docs/tasks/README.md)
+  - [Testing](docs/testing/README.md)
+  - [Decisions](docs/decisions/README.md)
+  - [Recommendations](docs/recommendations/README.md)
+  - [Evidence](docs/evidence/README.md)
