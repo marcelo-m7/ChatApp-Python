@@ -8,7 +8,21 @@ authors = [
     { name = "Marcelo Santos", email = "a79433@ualg.pt" }
 ]
 dependencies = [
-  "flet==0.27.5"
+    "fastapi==0.115.11",
+    "flet==0.27.5",
+    "langchain==0.3.21",
+    "langchain-community==0.3.20",
+    "langchain-openai==0.3.9",
+    "openai==1.68.0",
+    "python-dotenv==1.0.1",
+    "tenacity==9.0.0",
+    "uvicorn==0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "flet[all]==0.27.5",
+    "pytest==8.3.5",
 ]
 
 [tool.flet]
