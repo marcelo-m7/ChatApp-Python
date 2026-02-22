@@ -1,9 +1,5 @@
-from pathlib import Path
-import sys
-
 from fastapi.testclient import TestClient
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import server
 
 
@@ -71,3 +67,20 @@ def test_download_rejects_absolute_windows_style_path(tmp_path, monkeypatch):
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Nome de arquivo inválido"}
+
+
+def test_download_rejects_traversal_with_posix_segments(tmp_path, monkeypatch):
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+
+    monkeypatch.setattr(server, "UPLOAD_DIR", str(upload_dir))
+
+    response = client.get("/download/../secret.txt")
+
+    assert response.status_code == 404
+
+
+def test_download_rejects_empty_filename_request():
+    response = client.get("/download/")
+
+    assert response.status_code == 404
