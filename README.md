@@ -7,14 +7,14 @@ Aplicação de chat em tempo real construída com Flet (UI) e FastAPI (download 
 ```text
 src/
   chatapp/
-    application/      # serviços/casos de uso
+    application/      # serviços/casos de uso + ports
     config/           # configurações centralizadas
     domain/           # entidades de domínio
-    infrastructure/   # integrações externas (FastAPI etc.)
+    infrastructure/   # integrações externas (HTTP/OpenAI/OAuth/persistência)
     ui_flet/          # inicialização da UI Flet
   chat/               # implementação atual (compatível)
   assistants/         # integração de assistente
-server.py             # entrypoint FastAPI
+server.py             # entrypoint do serviço de arquivos
 docs/                 # documentação por domínio
 ```
 
@@ -53,7 +53,8 @@ mypy src
 
 As configurações principais estão em `src/chatapp/config/settings.py`:
 
-- `HOST`, `PORT`
-- `SERVER_HOST`, `SERVER_PORT`
-- `UPLOAD_DIR`, `SERVER_UPLOAD_DIR`
-- `ASSETS_DIR`
+- `HOST`, `PORT`, `ASSETS_DIR`, `UPLOAD_DIR`
+- `FILE_SERVER_HOST`, `FILE_SERVER_PORT`, `FILE_SERVER_UPLOAD_DIR`
+- `FILE_SERVER_DOWNLOAD_URL_TEMPLATE`
+- `OPENAI_API_KEY`, `ASSISTANT_MODEL`, `ASSISTANT_TEMPERATURE`, `ASSISTANT_NAME`
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URL`

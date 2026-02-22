@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
-import os
+
+from chatapp.config.settings import settings
 
 
 @dataclass(frozen=True)
 class AssistantModelConfig:
-    name: str = os.getenv("ASSISTANT_NAME", "Programador")
-    model: str = os.getenv("ASSISTANT_MODEL", "gpt-3.5-turbo")
-    temperature: float = float(os.getenv("ASSISTANT_TEMPERATURE", "0.7"))
+    name: str = settings.assistant_name
+    model: str = settings.assistant_model
+    temperature: float = settings.assistant_temperature
     system_prompts: list[str] = field(
         default_factory=lambda: [
             "Você é um programador sênior especialista em Flet, OpenAI integrations, Python e LangChain",
