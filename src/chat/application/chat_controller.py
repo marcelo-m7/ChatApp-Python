@@ -131,6 +131,8 @@ class ChatController:
         if message.room_id != self.page.session.get("current_room"):
             return
 
+        should_render_chat_message = message.message_type == "chat_message"
+
         if message.message_type == "chat_message":
             control = self.create_chat_message(message)
             self.append_chat_control(control)
@@ -172,7 +174,15 @@ class ChatController:
             self.append_chat_control(control)
             self.update_page()
 
-        if message.room_id == "programador" and message.message_type == "chat_message":
+        assistant_name = getattr(self.assistant_responder, "nome", "").strip().lower()
+        should_process_assistant_response = (
+            should_render_chat_message
+            and message.room_id == "programador"
+            and message.message_type not in {"login_message", "file_message"}
+            and message.user_name.strip().lower() != assistant_name
+        )
+
+        if should_process_assistant_response:
             assistant_response = self.assistant_responder.process_message(message)
             if assistant_response:
                 self.append_chat_control(self.create_chat_message(assistant_response))
