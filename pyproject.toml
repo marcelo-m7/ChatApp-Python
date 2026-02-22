@@ -12,18 +12,9 @@ dependencies = [
 ]
 
 [tool.flet]
-# org name in reverse domain name notation, e.g. "com.mycompany".
-# Combined with project.name to build bundle ID for iOS and Android apps
 org = "com.mycompany"
-
-# project display name that is used as an app title on Android and iOS home screens,
-# shown in window titles and about app dialogs on desktop.
 product = "chatapp"
-
-# company name to display in about app dialogs
 company = "Ualg"
-
-# copyright text to display in about app dialogs
 copyright = "Copyright (C) 2025 by Marcelo Santos"
 
 [tool.flet.app]
@@ -32,6 +23,8 @@ path = "src"
 [tool.uv]
 dev-dependencies = [
     "flet[all]==0.27.5",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
 ]
 
 [tool.poetry]
@@ -39,3 +32,10 @@ package-mode = false
 
 [tool.poetry.group.dev.dependencies]
 flet = {extras = ["all"], version = "0.27.5"}
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "--cov=chat.chat_room --cov=chat.chat_app --cov=chat.application.chat_controller --cov=assistants.assistants --cov=server --cov-report=term-missing --cov-fail-under=70"
