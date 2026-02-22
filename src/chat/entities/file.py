@@ -1,11 +1,3 @@
-from dataclasses import dataclass
-from typing import Optional
+from chatapp.domain.file import File
 
-@dataclass
-class File:
-    # owner: str
-    # room_id: Optional[str] = None
-    file_url: Optional[str] = None
-    file_name: Optional[str] = None
-    file_path: Optional[str] = None
-    file_size: Optional[str] = None
+__all__ = ["File"]

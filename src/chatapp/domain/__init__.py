@@ -1,7 +1,6 @@
-from chat.entities.file import File
-from chat.entities.message import Message
-from chat.entities.private_room import PrivateRoom
-from chat.entities.room import Room
-from chat.entities.user import User
+from chatapp.domain.file import File
+from chatapp.domain.message import Message
+from chatapp.domain.room import Room
+from chatapp.domain.user import User
 
-__all__ = ["File", "Message", "PrivateRoom", "Room", "User"]
+__all__ = ["File", "Message", "Room", "User"]

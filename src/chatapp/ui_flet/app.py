@@ -6,10 +6,12 @@ from dotenv import load_dotenv
 from chat.auth import AuthManager
 from chat.chat_app import ChatApp
 from chat.chat_interface import ChatInterface
+from chatapp.application.services import ChatService
 from chatapp.config.settings import settings
 
 load_dotenv(".env")
 chat_app = ChatApp()
+chat_service = ChatService(chat_app)
 
 
 def main(page: ft.Page):
@@ -21,7 +23,7 @@ def main(page: ft.Page):
 
     def start_app():
         page.clean()
-        ChatInterface(page, chat_app)
+        ChatInterface(page, chat_service)
 
     def on_login(e: ft.LoginEvent):
         if not e.error:

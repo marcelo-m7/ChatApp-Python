@@ -1,398 +1,254 @@
 import os
+
 import flet as ft
-from chat.chat_app import ChatApp
+
 from chat.chat_message import ChatMessage
 from chat.entities.message import Message
-from assistants.assistants import Assistants
-from chat.use_cases.dialogs import WelcomeDialog, NewRoomDialog
+from chat.use_cases.dialogs import NewRoomDialog, WelcomeDialog
 from chat.utils.file_handler import FileHandler
-
-class ChatInterface:
-    programador_assistant = Assistants(nome="Programador")
-
-    def __init__(self, page: ft.Page, chat_app: ChatApp):
-        self.page = page
-        self.chat_app = chat_app
-        self.page.title = "Chat em Tempo Real"
-        self.user_name: str
-        self.current_room = self.page.session.get("current_room") or self.chat_app.current_room
-
-        # Instancia os componentes de diálogo e file handler
-        self.welcome_dialog = WelcomeDialog(self.join_chat_click)
-        self.new_room_dialog = NewRoomDialog(self.save_new_room)
-        self.file_handler = FileHandler(self.page, self.chat_app, self.on_message)
-
-        # Adiciona os diálogos à sobreposição da página
-        self.page.overlay.append(self.welcome_dialog.dialog)
-        self.page.overlay.append(self.new_room_dialog.dialog)
-
-        # Inscreve-se para receber mensagens via pubsub
-        self.page.pubsub.subscribe(self.on_message)
-
-        # Cria os componentes da interface divididos em blocos
-        self.__create_menu_drawer()  # Menu lateral com salas e usuários online
-        self.__create_chatbox()       # Área principal com chat e inputs
-
-        # Foco para o nome de usuário e atualiza a página
-        self.welcome_dialog.join_user_name.focus()
-        self.page.update()
+from chatapp.application.services import AssistantService, ChatService, FileService
+from chatapp.application.upload_service import UploadService
 
 
-    # ========================
-    # Criação do Menu Drawer
-    # ========================
-    def __create_menu_drawer(self):
-        # Cria a parte de salas de chat
-        self.__create_rooms_drawer()
-        # Cria a parte de usuários online, utilizando active_users
-        self.__create_users_drawer()
+class DrawerView:
+    def __init__(self, chat_service: ChatService, on_change_room, on_private, on_new_room):
+        self.chat_service = chat_service
+        self.on_change_room = on_change_room
+        self.on_private = on_private
+        self.on_new_room = on_new_room
 
-        # Junta as duas divisões em um NavigationDrawer
-        self.menu_drawer = ft.NavigationDrawer(
-            controls=[
-                # Bloco de salas
-                ft.Column(
-                    controls=[
-                        ft.Container(height=12),
-                        ft.Text("Salas de Chat", size=18, weight="bold", text_align="center"),
-                        ft.Divider(),
-                        *self.rooms_drawer_controls  # Lista de ListTile das salas
-                    ],
-                    expand=True,
-                ),
-                # Bloco de usuários
-                ft.Column(
-                    controls=[
-                        ft.Divider(),
-                        ft.Text("Usuários Online", size=16, weight="bold", text_align="center"),
-                        *self.users_drawer_controls  # Lista de ListTile dos usuários
-                    ],
-                    alignment=ft.MainAxisAlignment.END
-                ),
-                ft.Row([self.new_room_btn], alignment=ft.MainAxisAlignment.CENTER),
-            ]
-        )
-        # Atualiza a página para que o drawer seja o novo menu_drawer
-        self.page.drawer = self.menu_drawer
-
-        self.menu_button = ft.IconButton(
-            icon=ft.Icons.MENU,
-            tooltip="Abrir menu",
-            on_click=lambda _: self.open_drawer(),
-        )
-
-    def __create_rooms_drawer(self):
-        # Botão para criar nova sala
-        self.new_room_btn = ft.ElevatedButton(
+    def build(self):
+        rooms = [
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE),
+                title=ft.Text(room.room_name),
+                on_click=lambda _e, room_id=room_id: self.on_change_room(room_id),
+            )
+            for room_id, room in self.chat_service.chat_app.rooms.items()
+        ]
+        users = [
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.ACCOUNT_CIRCLE),
+                title=ft.Text(user.user_name),
+                on_click=lambda _e, user=user.user_name: self.on_private(user),
+            )
+            for user in self.chat_service.chat_app.active_users.values()
+        ]
+        new_room_btn = ft.ElevatedButton(
             text="Nova sala",
-            on_click=self.create_new_room_click,
+            on_click=self.on_new_room,
             icon=ft.Icons.MEETING_ROOM,
             width=130,
         )
-        # Cria controles para as salas de chat
-        self.rooms_drawer_controls = [
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.CHAT_BUBBLE_OUTLINE),
-                title=ft.Text(value.room.room_name),
-                on_click=lambda e, room_id=key: self.change_room_by_id(room_id),
-            ) for key, value in self.chat_app.rooms.items()
-        ]
-
-    def __create_users_drawer(self):
-        # Obtém os nomes dos usuários ativos a partir do dicionário active_users
-        current_users = [user.user_name for user in self.chat_app.active_users.values()]
-        self.users_drawer_controls = [
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.ACCOUNT_CIRCLE),
-                title=ft.Text(user),
-                on_click=lambda e, user=user: self.send_private_message(user),
-            ) for user in current_users
-        ]
-
-    def update_users_drawer(self):
-        # Atualiza dinamicamente a lista de usuários online utilizando active_users
-        current_users = [user.user_name for user in self.chat_app.active_users.values()]
-        self.users_drawer_controls = [
-            ft.ListTile(
-                leading=ft.Icon(ft.Icons.ACCOUNT_CIRCLE),
-                title=ft.Text(user),
-                on_click=lambda e, user=user: self.send_private_message(user),
-            ) for user in current_users
-        ]
-        # Atualiza o bloco de usuários dentro do menu_drawer
-        self.menu_drawer.controls[-2] = ft.Column(
+        return ft.NavigationDrawer(
             controls=[
-                ft.Divider(),
-                ft.Text("Usuários Online", size=16, weight="bold", text_align="center"),
-                *self.users_drawer_controls
-            ],
-            alignment=ft.MainAxisAlignment.END
+                ft.Column([ft.Text("Salas de Chat", size=18, weight="bold"), *rooms], expand=True),
+                ft.Column([ft.Divider(), ft.Text("Usuários Online", size=16, weight="bold"), *users]),
+                ft.Row([new_room_btn], alignment=ft.MainAxisAlignment.CENTER),
+            ]
         )
-        self.page.update()
 
-    def open_drawer(self):
-        self.page.drawer.open = True
-        self.page.update()
 
-    # ========================
-    # Criação do ChatBox
-    # ========================
-    def __create_chatbox(self):
-        # Cria o ChatRoom (área de exibição das mensagens)
-        self.__create_chat_room()
-        # Cria o UserFormulary (inputs para envio de mensagem e arquivos)
-        self.__create_user_formulary()
-
-        # Junta os dois blocos em um container principal
-        self.chatbox = ft.Column(
+class InputBar(ft.Row):
+    def __init__(self, message_field: ft.TextField, file_handler: FileHandler, send_action):
+        super().__init__(
             controls=[
-                # Cabeçalho com menu e identificação da sala
-                ft.Row([self.menu_button, self.room_name], alignment=ft.MainAxisAlignment.START),
-                # ChatRoom
-                self.chat_room_container,
-                # UserFormulary
-                self.user_formulary_container,
-            ],
-            expand=True,
-        )
-        self.page.add(self.chatbox)
-
-    def __create_chat_room(self):
-        # Área de exibição das mensagens do chat
-        self.chat = ft.ListView(expand=True, spacing=10, auto_scroll=True)
-        self.chat_room_container = ft.Container(
-            content=self.chat,
-            border=ft.border.all(1, ft.Colors.OUTLINE),
-            border_radius=5,
-            padding=10,
-            expand=True,
-        )
-        # Exibe o nome da sala atual
-        self.room_name = ft.Text(
-            f"Sala: {self.chat_app.rooms[self.current_room].room.room_name}",
-            size=20, weight="bold"
-        )
-
-    def __create_user_formulary(self):
-        # Campo para nova mensagem
-        self.new_message = ft.TextField(
-            hint_text="Escreva uma mensagem...",
-            autofocus=True,
-            shift_enter=True,
-            min_lines=1,
-            max_lines=5,
-            filled=True,
-            expand=True,
-            on_submit=self.send_message_click,
-            border_radius=5,
-        )
-        # Barra de envio com botões para upload e envio
-        self.input_bar = ft.Row(
-            controls=[
-                self.new_message,
+                message_field,
                 ft.IconButton(
                     icon=ft.Icons.FILE_UPLOAD,
                     tooltip="Compartilhar arquivo",
-                    on_click=lambda _: self.file_handler.file_picker.pick_files(
-                        allow_multiple=True,
-                        allowed_extensions=['png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt']
-                    ),
+                    on_click=lambda _: file_handler.file_picker.pick_files(allow_multiple=True),
                 ),
-                ft.IconButton(
-                    icon=ft.Icons.SEND_ROUNDED,
-                    tooltip="Enviar mensagem",
-                    on_click=self.send_message_click,
-                ),
+                ft.IconButton(icon=ft.Icons.SEND_ROUNDED, tooltip="Enviar mensagem", on_click=send_action),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             vertical_alignment=ft.CrossAxisAlignment.END,
             spacing=10,
         )
-        self.user_formulary_container = ft.Container(
-            content=self.input_bar,
-            padding=10,
-            border_radius=5,
-            alignment=ft.alignment.bottom_center,
-        )
 
-    # ========================
-    # Outros Métodos de Ação
-    # ========================
+
+class ChatView(ft.Column):
+    def __init__(self, room_name: ft.Text, chat_column: ft.Column, input_bar: InputBar):
+        super().__init__(controls=[ft.Row([room_name]), chat_column, input_bar], expand=True)
+
+
+class ChatInterface:
+    def __init__(self, page: ft.Page, chat_service: ChatService):
+        self.page = page
+        self.chat_service = chat_service
+        self.assistant_service = AssistantService()
+        self.file_service = FileService()
+        self.upload_service = UploadService(self.file_service)
+
+        self.current_room = self.page.session.get("current_room") or self.chat_service.chat_app.current_room
+        self.welcome_dialog = WelcomeDialog(self.join_chat_click)
+        self.new_room_dialog = NewRoomDialog(self.save_new_room)
+        self.file_handler = FileHandler(self.page, self.chat_service, self.upload_service)
+
+        self.page.overlay.extend([self.welcome_dialog.dialog, self.new_room_dialog.dialog])
+        self.page.pubsub.subscribe(self.on_message)
+
+        self.chat = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+        self.new_message = ft.TextField(expand=True, on_submit=self.send_message_click)
+        self.room_name = ft.Text(size=20, weight="bold")
+        self._update_room_title()
+
+        self.input_bar = InputBar(self.new_message, self.file_handler, self.send_message_click)
+        self.chatbox = ChatView(self.room_name, self.chat, self.input_bar)
+
+        self.page.drawer = DrawerView(
+            self.chat_service,
+            self.change_room_by_id,
+            self.send_private_message,
+            self.create_new_room_click,
+        ).build()
+        self.page.add(self.chatbox)
+        self.welcome_dialog.join_user_name.focus()
+        self.page.update()
+
+    def _update_room_title(self):
+        self.room_name.value = f"Sala: {self.chat_service.chat_app.rooms[self.current_room].room_name}"
+
+    def refresh_drawer(self):
+        self.page.drawer = DrawerView(
+            self.chat_service,
+            self.change_room_by_id,
+            self.send_private_message,
+            self.create_new_room_click,
+        ).build()
+
     def send_private_message(self, user: str):
-        print("Enviando mensagem privada para: ", user)
-        reciver = user.strip().lower()
+        receiver = user.strip().lower()
         owner = self.user_id
-        private_room_id = str(owner+reciver).lower()
-        
-        # Debito técnico para possibilitar criações de sala com mais user
-        if private_room_id in self.chat_app.rooms.keys():
-            self.change_room_by_id(private_room_id)
-            return
-        
-        private_room_id2 = str(reciver+owner).lower()
-        if private_room_id2 in self.chat_app.rooms.keys():
-            self.change_room_by_id(private_room_id2)
-            return
-        
-        private_room_id = self.chat_app.new_private_room(owner=self.user_name, reciver=user, room_id=private_room_id)
+        private_room_id = f"{owner}{receiver}".lower()
+
+        if private_room_id not in self.chat_service.chat_app.rooms:
+            mirror = f"{receiver}{owner}".lower()
+            private_room_id = mirror if mirror in self.chat_service.chat_app.rooms else self.chat_service.create_private_room(
+                owner=self.user_name,
+                receiver=user,
+                room_id=private_room_id,
+            )
+
         self.change_room_by_id(private_room_id)
-        
+
     def change_room_by_id(self, room_id):
-        print(f"Changing room to: {room_id}")
         self.page.session.set("current_room", room_id)
-        # self.current_room = room_id
         self.current_room = room_id
-        self.room_name.value = f"Sala: {self.chat_app.rooms[room_id].room.room_name}"
+        self._update_room_title()
         self.chat.controls.clear()
-        for msg in self.chat_app.rooms[room_id].room.messages:
-            self.on_message(msg) 
+        for msg in self.chat_service.get_messages(room_id):
+            self.on_message(msg)
         self.page.drawer.open = False
         self.page.update()
 
-    def save_new_room(self, e):
+    def save_new_room(self, _e):
         room_name = self.new_room_dialog.room_name_field.value.strip()
         room_id = self.new_room_dialog.room_id_field.value.strip()
-        if not room_name:
-            self.new_room_dialog.room_name_field.error_text = "O nome não pode estar em branco!"
+        if not room_name or not room_id:
+            self.page.snack_bar = ft.SnackBar(ft.Text("Nome e ID são obrigatórios"), open=True)
             self.page.update()
             return
-        elif not room_id:
-            self.new_room_dialog.room_id_field.error_text = "O ID não pode estar em branco!"
-            self.page.update()
-            return
-        
-        self.chat_app.new_room(room_id, room_name)
+        self.chat_service.create_room(room_id, room_name)
         self.new_room_dialog.dialog.open = False
-        self.__create_menu_drawer()
+        self.refresh_drawer()
         self.page.update()
 
-    def create_new_room_click(self, e):
+    def create_new_room_click(self, _e):
         self.new_room_dialog.room_name_field.value = ""
         self.new_room_dialog.room_id_field.value = ""
         self.new_room_dialog.open()
         self.page.update()
 
-    def send_message_click(self, e):
-        if self.new_message.value.strip():
-            message = Message(
-                user_name=self.user_name,
-                text=self.new_message.value,
-                message_type="chat_message",
-                room_id=self.current_room,
-            )
+    def send_message_click(self, _e):
+        if not self.new_message.value.strip():
+            return
 
-            self.chat_app.add_message_to_room(message)
-            self.page.pubsub.send_all(message)
+        message = Message(
+            user_name=self.user_name,
+            text=self.new_message.value,
+            message_type="chat_message",
+            room_id=self.current_room,
+        )
+        self.chat_service.send_message(message)
+        self.page.pubsub.send_all(message)
+        self.new_message.value = ""
+        self.new_message.focus()
+        self.page.update()
 
-            self.new_message.value = ""
-            self.new_message.focus()
-            self.page.update()
-
-    def join_chat_click(self, e):
+    def join_chat_click(self, _e):
         user_name = self.welcome_dialog.join_user_name.value
-        user_id = self.welcome_dialog.join_user_name.value.strip().lower()
-
+        user_id = user_name.strip().lower()
         if not user_name:
             self.welcome_dialog.join_user_name.error_text = "O nome não pode estar em branco!"
             self.welcome_dialog.join_user_name.update()
-        else:
-            self.page.session.set("user_name", user_name)
-            self.page.session.set("user_id", user_id)
-            self.page.session.set("current_room", 'geral')
-            self.user_name = self.page.session.get("user_name")
-            self.user_id = self.page.session.get("user_id")
-            self.current_room = self.page.session.get("current_room")
+            return
 
-            self.chat_app.add_user(user_name=self.user_name, user_id=self.user_id)
-            self.welcome_dialog.dialog.open = False
+        self.page.session.set("user_name", user_name)
+        self.page.session.set("user_id", user_id)
+        self.page.session.set("current_room", "geral")
+        self.user_name = user_name
+        self.user_id = user_id
+        self.current_room = "geral"
 
-            # Carrega as mensagens existentes da sala atual
-            for msg in self.chat_app.rooms[self.current_room].room.messages:
-                self.on_message(msg) 
+        self.chat_service.join_user(user_name=self.user_name, user_id=self.user_id)
+        self.welcome_dialog.dialog.open = False
 
-            self.page.update()
-            
-            # Atualiza o drawer para que os usuários conectados vejam a lista atualizada
-            msg = Message(user_name=user_name,
-                          text=f"{user_name} entrou no chat.",
-                          message_type="login_message",
-                          room_id=self.current_room)
-            
-            self.chat_app.add_message_to_room(msg)
-            self.page.pubsub.send_all(msg)
+        for msg in self.chat_service.get_messages(self.current_room):
+            self.on_message(msg)
+
+        login_msg = Message(
+            user_name=user_name,
+            text=f"{user_name} entrou no chat.",
+            message_type="login_message",
+            room_id=self.current_room,
+        )
+        self.chat_service.send_message(login_msg)
+        self.page.pubsub.send_all(login_msg)
+        self.refresh_drawer()
+        self.page.update()
 
     def on_edit(self, chat_message: ChatMessage):
-        def save_edit(e):
-            chat_message.message.text = edit_field.value
-            # Atualiza a interface da mensagem editada
-            chat_message.controls[1].controls[1].value = chat_message.message.text  
-            chat_message.controls[1].controls[1].update()
-            chat_message.update()
-            edit_dlg.open = False
-            self.page.update()
-
-        edit_field = ft.TextField(value=chat_message.message.text)
-        edit_dlg = ft.AlertDialog(
-            title=ft.Text("Editar Mensagem"),
-            content=edit_field,
-            actions=[
-                ft.ElevatedButton(text="Salvar", on_click=save_edit),
-                ft.ElevatedButton(text="Cancelar", on_click=lambda e: setattr(edit_dlg, "open", False) or self.page.update()),
-            ],
-        )
-        self.page.overlay.append(edit_dlg)
-        edit_dlg.open = True
-        self.page.update()
+        chat_message.controls[1].controls[1].value = chat_message.message.text
 
     def on_delete(self, chat_message: ChatMessage):
         self.chat.controls.remove(chat_message)
         self.page.update()
 
     def on_message(self, message: Message):
-        # Processa apenas mensagens da sala atual
         if message.room_id != self.page.session.get("current_room"):
             return
 
-        if message.message_type == "chat_message":
-            m = ChatMessage(message, self.on_edit, self.on_delete)
-            print("Messagem enviada: \n", message)
-        
         if message.message_type == "login_message":
-            m = ft.Text(message.text, italic=True, color=ft.Colors.WHITE, size=12)
-            self.chat.controls.append(m)
-            self.update_users_drawer()
+            self.chat.controls.append(ft.Text(message.text, italic=True, color=ft.Colors.WHITE, size=12))
+            self.refresh_drawer()
             self.page.update()
             return
-        
-        elif message.room_id == "programador":
-            assistant_response = self.programador_assistant.process_message(message)
-            if assistant_response:
-                ass_m = ChatMessage(assistant_response, self.on_edit, self.on_delete)
-                self.chat.controls.append(ass_m)
-                self.page.update()
 
-        elif message.message_type == "file_message":
+        if message.message_type == "file_message" and message.file:
             file_ext = os.path.splitext(message.file.file_path)[1].lower()
-            if file_ext in ['.png', '.jpg', '.jpeg', '.gif']:
-                m = ft.Column([
+            if file_ext in [".png", ".jpg", ".jpeg", ".gif"]:
+                control = ft.Column([
                     ft.Text(f"{message.user_name} compartilhou uma imagem:"),
-                    ft.Image(src=message.file.file_path, width=200, height=200, visible=True, fit=ft.ImageFit.CONTAIN)
+                    ft.Image(src=message.file.file_path, width=200, height=200, fit=ft.ImageFit.CONTAIN),
                 ])
             else:
-                m = ft.Column([
+                control = ft.Column([
                     ft.Text(f"{message.user_name} compartilhou um arquivo:"),
                     ft.ElevatedButton(
                         text=os.path.basename(message.file.file_path),
-                        on_click=lambda _: self.page.launch_url(message.file.file_url)
-                    )
+                        on_click=lambda _: self.page.launch_url(message.file.file_url),
+                    ),
                 ])
+            self.chat.controls.append(control)
+            self.page.update()
+            return
 
-        self.chat.controls.append(m)
+        self.chat.controls.append(ChatMessage(message, self.on_edit, self.on_delete))
+
+        assistant_response = self.assistant_service.process(message) if message.room_id == "programador" else None
+        if assistant_response:
+            self.chat_service.send_message(assistant_response)
+            self.chat.controls.append(ChatMessage(assistant_response, self.on_edit, self.on_delete))
+
         self.page.update()
-
-        if message.room_id == "programador":
-            assistant_response = self.programador_assistant.process_message(message)
-            if assistant_response:
-                ass_m = ChatMessage(assistant_response, self.on_edit, self.on_delete)
-                self.chat.controls.append(ass_m)
-                self.page.update()
