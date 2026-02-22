@@ -4,13 +4,14 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8080 \
     HOST=0.0.0.0 \
     SERVER_PORT=3000 \
-    SERVER_HOST=0.0.0.0
+    SERVER_HOST=0.0.0.0 \
+    UV_PROJECT_ENVIRONMENT=/usr/local
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv \
+    && uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
