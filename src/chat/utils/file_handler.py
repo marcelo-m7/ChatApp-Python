@@ -2,6 +2,7 @@ import flet as ft
 
 from chatapp.application.services import ChatService
 from chatapp.application.upload_service import UploadService
+from chatapp.config.settings import settings
 
 
 class FileHandler:
@@ -31,8 +32,8 @@ class FileHandler:
                     room_id=self.page.session.get("current_room"),
                     file_name=file.name,
                     file_size=file.size,
-                    upload_dir="uploads/",
-                    download_url_template="http://127.0.0.1:3000/download/{filename}",
+                    upload_dir=settings.upload_dir,
+                    download_url_template=settings.file_server_download_url_template,
                 )
                 self.chat_service.send_message(message)
                 self.page.pubsub.send_all(message)

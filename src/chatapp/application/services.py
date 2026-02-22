@@ -9,16 +9,26 @@ from assistants.assistants import Assistants
 from chat.chat_app import ChatApp
 from chat.entities.file import File
 from chat.entities.message import Message
+from chat.entities.user import User
+from chatapp.application.ports import MessageRepository, UserRepository
+from chatapp.infrastructure.persistence.in_memory_repositories import InMemoryMessageRepository, InMemoryUserRepository
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".doc", ".docx", ".txt"}
 
 
 class ChatService:
-    def __init__(self, chat_app: ChatApp):
+    def __init__(
+        self,
+        chat_app: ChatApp,
+        message_repository: MessageRepository | None = None,
+        user_repository: UserRepository | None = None,
+    ):
         self.chat_app = chat_app
+        self.message_repository = message_repository or InMemoryMessageRepository(chat_app)
+        self.user_repository = user_repository or InMemoryUserRepository(chat_app)
 
     def send_message(self, message: Message) -> Message:
-        self.chat_app.add_message_to_room(message)
+        self.message_repository.add(message)
         return message
 
     def create_room(self, room_id: str, room_name: str):
@@ -26,14 +36,15 @@ class ChatService:
         return self.chat_app.rooms[room_id]
 
     def join_user(self, user_name: str, user_id: str):
-        self.chat_app.add_user(user_name=user_name, user_id=user_id)
-        return self.chat_app.active_users[user_id]
+        user = User(user_name=user_name, user_id=user_id, current_room_id="geral")
+        self.user_repository.add(user)
+        return self.user_repository.get(user_id)
 
     def create_private_room(self, owner: str, receiver: str, room_id: str) -> str:
         return self.chat_app.new_private_room(owner=owner, receiver=receiver, room_id=room_id)
 
     def get_messages(self, room_id: str) -> list[Message]:
-        return self.chat_app.rooms[room_id].messages
+        return self.message_repository.list_by_room(room_id)
 
 
 @dataclass
