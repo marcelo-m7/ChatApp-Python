@@ -1,48 +1,59 @@
-# Chat em Tempo Real com Flet e OpenAI
+# ChatApp Python
 
-## Sobre o Projeto
-Este projeto é um chat em tempo real desenvolvido em Python utilizando a biblioteca [Flet](https://flet.dev/). Ele permite que os usuários:
-- Criem salas de conversa
-- Compartilhem arquivos
-- Enviem mensagens privadas
-- Interajam com um assistente virtual da OpenAI na sala "Bate-papo com Assistente", mencionando `@programador` na mensagem
+Aplicação de chat em tempo real construída com Flet (UI) e FastAPI (download de arquivos), com suporte a assistente OpenAI.
 
----
+## Estrutura do projeto
+
+```text
+src/
+  chatapp/
+    application/      # serviços/casos de uso
+    config/           # configurações centralizadas
+    domain/           # entidades de domínio
+    infrastructure/   # integrações externas (FastAPI etc.)
+    ui_flet/          # inicialização da UI Flet
+  chat/               # implementação atual (compatível)
+  assistants/         # integração de assistente
+server.py             # entrypoint FastAPI
+docs/                 # documentação por domínio
+```
 
 ## Requisitos
-Antes de executar o projeto, certifique-se de ter o Python instalado e instale as dependências necessárias:
+
+- Python 3.9+
+- Dependências do projeto:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Como Executar
-### Iniciar o Chat
-Para iniciar a interface do chat, execute o seguinte comando:
+## Execução
+
+### UI (Flet)
+
 ```bash
 python src/main.py
 ```
 
-### Iniciar o Servidor
-O servidor precisa ser executado para gerenciar o compartilhamento de arquivos. Para isso, rode:
+### API de download (FastAPI)
+
 ```bash
 python server.py
 ```
 
-Isso disponibilizará os arquivos compartilhados no chat através de um endpoint de API feita com FastAPI.
+## Qualidade de código
 
-## Funcionalidades Principais
-- **OAuth 2.0**: Para entrar na app, o usuário deve se conectar com uma conta GitHub.
-- **Criação de Salas**: Os usuários podem criar salas personalizadas para conversas específicas.
-- **Compartilhamento de Arquivos**: Suporte para o envio de imagens, documentos e outros formatos. Os ficheiro são salvos na pasta `src/uploads`
-- **Assistente Virtual**: Na sala "Bate-papo com Assistente", qualquer mensagem que inclua `@programador` será processada por uma API da OpenAI e receberá uma resposta automática.
-- **Persistência do histórico entre novas sessões**: O projeto base foi rearquitetado de maneira que haja um objeto que persiste os dados do aplicativo em execução.
-- **Responsatividade da página**: O layout foi configurado de modo a ser responsivo para mobile.
-- **Chat Privado**: Envio de mensagens privadas.
-- **Páginas dinâmicas**: As diferentes sesssões são atualizadas conforme novos usuários entram ou criam novas salas.
+```bash
+ruff check .
+black --check .
+mypy src
+```
 
-## Tecnologias Utilizadas
-- **Python**: Linguagem principal do projeto
-- **Flet**: Framework para construção da interface gráfica
-- **Uvicorn**: Servidor ASGI para disponibilizar os arquivos compartilhados
-- **OpenAI API**: Para responder mensagens com o assistente virtual
+## Variáveis de ambiente
+
+As configurações principais estão em `src/chatapp/config/settings.py`:
+
+- `HOST`, `PORT`
+- `SERVER_HOST`, `SERVER_PORT`
+- `UPLOAD_DIR`, `SERVER_UPLOAD_DIR`
+- `ASSETS_DIR`
