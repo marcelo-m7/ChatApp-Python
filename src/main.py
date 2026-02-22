@@ -1,30 +1,34 @@
-import flet as ft
-from chat.chat_interface import ChatInterface
-from dotenv import load_dotenv
-from chat.chat_app import ChatApp
-from chat.auth import AuthManager
 import os
+
+import flet as ft
+from dotenv import load_dotenv
+
+from assistants.assistants import Assistants
+from chat.auth import AuthManager
+from chat.chat_app import ChatApp
+from chat.chat_interface import ChatInterface
+from chat.utils.file_handler import FileHandler
 
 load_dotenv(".env")
 chat_app = ChatApp()
 
+
 def main(page: ft.Page):
-    # Configurações da página
     page.title = "Chat Em Tempo Real - Flet App"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    # page.scroll = ft.ScrollMode.ADAPTIVE
     page.update()
 
-    # Inicializa o gerenciador de autenticação
     auth_manager = AuthManager(page)
 
-    # Função para iniciar o aplicativo após o login
     def start_app():
         page.clean()
-        ChatInterface(page, chat_app) # Achat está sendo iniciado e atualizado aqui
-        # page.update()
+        ChatInterface(
+            page,
+            chat_app,
+            assistant_responder=Assistants(nome="Programador"),
+            file_handler_factory=lambda page, chat_app, on_message: FileHandler(page, chat_app, on_message),
+        )
 
-    # Callback para o evento de login
     def on_login(e: ft.LoginEvent):
         if not e.error:
             auth_manager.toggle_login_buttons()
@@ -32,16 +36,11 @@ def main(page: ft.Page):
         else:
             print(f"Error logging in: {e.error}")
             start_app()
-        
 
-    # Configura o callback de login
-    # page.on_login = on_login
-    # page.add(auth_manager.login_button, auth_manager.logout_button)
-    start_app() # Para Testes
+    start_app()
 
 
 if __name__ == "__main__":
-    # Permite configurar porta e host via variáveis de ambiente para implantação em contêineres
     port = int(os.getenv("PORT", 8550))
     host = os.getenv("HOST", "localhost")
 
