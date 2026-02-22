@@ -1,16 +1,14 @@
-import os
 import flet as ft
-from chat.entities.message import Message
-from chat.entities.file import File
-from chat.chat_app import ChatApp
 
-ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.doc', '.docx', '.txt']
+from chatapp.application.services import ChatService
+from chatapp.application.upload_service import UploadService
+
 
 class FileHandler:
-    def __init__(self, page: ft.Page, chat_app: ChatApp, on_message):
+    def __init__(self, page: ft.Page, chat_service: ChatService, upload_service: UploadService):
         self.page = page
-        self.chat_app = chat_app
-        self.on_message = on_message
+        self.chat_service = chat_service
+        self.upload_service = upload_service
         self.file_picker = ft.FilePicker(
             on_result=self.pick_files_result,
             on_upload=self.on_upload_progress,
@@ -18,46 +16,35 @@ class FileHandler:
         self.page.overlay.append(self.file_picker)
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):
-        if e.files:
-            for file in e.files:
-                file_ext = os.path.splitext(file.name)[1].lower()
-                if file_ext not in ALLOWED_EXTENSIONS:
-                    self.show_snack("Tipo de arquivo não permitido!")
-                    continue
+        if not e.files:
+            return
 
-                try:
-                    upload_url = self.page.get_upload_url(file.name, 60)
-                    if upload_url:
-                        self.file_picker.upload([
-                            ft.FilePickerUploadFile(file.name, upload_url=upload_url)
-                        ])
-                        self.show_snack(f"Arquivo enviado: {file.name}, Tamanho: {file.size} KBs")
-                        file_path = os.path.join(self.chat_app.upload_dir, file.name).replace('\\', '/')
-                        message = Message(
-                            user_name=self.page.session.get("user_name"),
-                            text=f"Arquivo compartilhado: {file.name}",
-                            message_type="file_message",
-                            room_id=self.page.session.get("current_room") or self.current_room,
-                            file=File(
-                                file_url=self.chat_app.download_url.format(filename=file.name),
-                                file_name=file.name,
-                                file_path=file_path,
-                                file_size=file.size
-                            )
-                        )
-                        self.chat_app.add_message_to_room(message)
-                        self.page.pubsub.send_all(message)
+        for file in e.files:
+            try:
+                upload_url = self.page.get_upload_url(file.name, 60)
+                if not upload_url:
+                    raise ValueError(f"Falha ao obter URL de upload para {file.name}")
 
-                    else:
-                        raise Exception(f"[ERROR] Falha ao obter URL de upload para {file.name}")
-                    
-                except Exception as ex:
-                    self.show_snack(f"Erro ao enviar arquivo: {str(ex)}")
+                self.file_picker.upload([ft.FilePickerUploadFile(file.name, upload_url=upload_url)])
+                message = self.upload_service.create_file_message(
+                    user_name=self.page.session.get("user_name"),
+                    room_id=self.page.session.get("current_room"),
+                    file_name=file.name,
+                    file_size=file.size,
+                    upload_dir="uploads/",
+                    download_url_template="http://127.0.0.1:3000/download/{filename}",
+                )
+                self.chat_service.send_message(message)
+                self.page.pubsub.send_all(message)
+                self.show_snack(f"Arquivo enviado: {file.name}, Tamanho: {file.size} KBs")
+            except ValueError as ex:
+                self.show_snack(str(ex))
+            except Exception as ex:
+                self.show_snack(f"Erro ao enviar arquivo: {str(ex)}")
 
     def on_upload_progress(self, e: ft.FilePickerUploadEvent):
-        print(f"Upload progress: {e.progress*100}% para {e.file_name}")
+        self.show_snack(f"Upload {e.file_name}: {e.progress*100:.0f}%")
 
     def show_snack(self, message: str):
-        snack_bar = ft.SnackBar(ft.Text(message), open=True)
-        self.page.controls.append(snack_bar)    # Precisa reorganizar para remover o snack_bar anterior
+        self.page.snack_bar = ft.SnackBar(ft.Text(message), open=True)
         self.page.update()
