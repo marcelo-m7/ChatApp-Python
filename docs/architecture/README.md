@@ -1,3 +1,6 @@
 # Architecture Docs
 
-Use this folder for current architecture descriptions, diagrams, and module boundaries.
+Documentação de arquitetura, padrões e diagramas:
+
+- [Diagrama de arquitetura](diagram.md)
+- [Padrões de codificação](coding-standards.md)

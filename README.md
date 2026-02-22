@@ -49,6 +49,25 @@ black --check .
 mypy src
 ```
 
+## Testes e cobertura
+
+```bash
+pytest
+```
+
+A suíte está em `tests/` e mede cobertura com `pytest-cov` para os módulos de aplicação, domínio e infraestrutura,
+com *gate* mínimo de 80%.
+
+## Arquitetura (visão rápida)
+
+```text
+UI (Flet) -> Application Services -> Domain -> Infrastructure
+                 ^                         |
+                 +------ FastAPI ---------+
+```
+
+Documentação detalhada em `docs/architecture/diagram.md` e ADRs em `docs/decisions/`.
+
 ## Variáveis de ambiente
 
 As configurações principais estão em `src/chatapp/config/settings.py`:

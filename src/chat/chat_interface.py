@@ -1,5 +1,3 @@
-import os
-
 import flet as ft
 
 from chat.chat_message import ChatMessage
@@ -8,6 +6,7 @@ from chat.use_cases.dialogs import NewRoomDialog, WelcomeDialog
 from chat.utils.file_handler import FileHandler
 from chatapp.application.services import AssistantService, ChatService, FileService
 from chatapp.application.upload_service import UploadService
+from chatapp.domain.file_rules import is_image_file
 
 
 class DrawerView:
@@ -138,7 +137,7 @@ class ChatInterface:
         self._update_room_title()
         self.chat.controls.clear()
         for msg in self.chat_service.get_messages(room_id):
-            self.on_message(msg)
+            self.render_message(msg)
         self.page.drawer.open = False
         self.page.update()
 
@@ -195,7 +194,7 @@ class ChatInterface:
         self.welcome_dialog.dialog.open = False
 
         for msg in self.chat_service.get_messages(self.current_room):
-            self.on_message(msg)
+            self.render_message(msg)
 
         login_msg = Message(
             user_name=user_name,
@@ -219,15 +218,37 @@ class ChatInterface:
         if message.room_id != self.page.session.get("current_room"):
             return
 
-        if message.message_type == "login_message":
-            self.chat.controls.append(ft.Text(message.text, italic=True, color=ft.Colors.WHITE, size=12))
-            self.refresh_drawer()
+        self.render_message(message)
+
+        if not self._should_process_assistant(message):
             self.page.update()
             return
 
+        assistant_response = self.assistant_service.process(message)
+        if assistant_response:
+            self.chat_service.send_message(assistant_response)
+            self.chat.controls.append(ChatMessage(assistant_response, self.on_edit, self.on_delete))
+
+        self.page.update()
+
+    def _should_process_assistant(self, message: Message) -> bool:
+        if message.message_type != "chat_message" or message.room_id != "programador":
+            return False
+
+        assistant_name = self.assistant_service.assistant.nome
+        return message.user_name != assistant_name
+
+    def render_message(self, message: Message):
+        if message.room_id != self.page.session.get("current_room"):
+            return
+
+        if message.message_type == "login_message":
+            self.chat.controls.append(ft.Text(message.text, italic=True, color=ft.Colors.WHITE, size=12))
+            self.refresh_drawer()
+            return
+
         if message.message_type == "file_message" and message.file:
-            file_ext = os.path.splitext(message.file.file_path)[1].lower()
-            if file_ext in [".png", ".jpg", ".jpeg", ".gif"]:
+            if is_image_file(message.file.file_path):
                 control = ft.Column([
                     ft.Text(f"{message.user_name} compartilhou uma imagem:"),
                     ft.Image(src=message.file.file_path, width=200, height=200, fit=ft.ImageFit.CONTAIN),
@@ -236,19 +257,11 @@ class ChatInterface:
                 control = ft.Column([
                     ft.Text(f"{message.user_name} compartilhou um arquivo:"),
                     ft.ElevatedButton(
-                        text=os.path.basename(message.file.file_path),
+                        text=message.file.file_name,
                         on_click=lambda _: self.page.launch_url(message.file.file_url),
                     ),
                 ])
             self.chat.controls.append(control)
-            self.page.update()
             return
 
         self.chat.controls.append(ChatMessage(message, self.on_edit, self.on_delete))
-
-        assistant_response = self.assistant_service.process(message) if message.room_id == "programador" else None
-        if assistant_response:
-            self.chat_service.send_message(assistant_response)
-            self.chat.controls.append(ChatMessage(assistant_response, self.on_edit, self.on_delete))
-
-        self.page.update()

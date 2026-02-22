@@ -11,9 +11,8 @@ from chat.entities.file import File
 from chat.entities.message import Message
 from chat.entities.user import User
 from chatapp.application.ports import MessageRepository, UserRepository
+from chatapp.domain.file_rules import validate_allowed_extension
 from chatapp.infrastructure.persistence.in_memory_repositories import InMemoryMessageRepository, InMemoryUserRepository
-
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".pdf", ".doc", ".docx", ".txt"}
 
 
 class ChatService:
@@ -57,9 +56,7 @@ class FileUploadInput:
 
 class FileService:
     def build_file_metadata(self, payload: FileUploadInput) -> File:
-        ext = os.path.splitext(payload.file_name)[1].lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            raise ValueError("Tipo de arquivo não permitido")
+        validate_allowed_extension(payload.file_name)
 
         file_path = os.path.join(payload.upload_dir, payload.file_name).replace("\\", "/")
         return File(
