@@ -8,7 +8,7 @@ authors = [
     { name = "Marcelo Santos", email = "a79433@ualg.pt" }
 ]
 dependencies = [
-  "flet==0.27.5"
+    "flet==0.27.5",
 ]
 
 [tool.flet]
@@ -28,14 +28,3 @@ copyright = "Copyright (C) 2025 by Marcelo Santos"
 
 [tool.flet.app]
 path = "src"
-
-[tool.uv]
-dev-dependencies = [
-    "flet[all]==0.27.5",
-]
-
-[tool.poetry]
-package-mode = false
-
-[tool.poetry.group.dev.dependencies]
-flet = {extras = ["all"], version = "0.27.5"}

@@ -9,12 +9,24 @@ Este projeto é um chat em tempo real desenvolvido em Python utilizando a biblio
 
 ---
 
-## Requisitos
-Antes de executar o projeto, certifique-se de ter o Python instalado e instale as dependências necessárias:
+## Dependências (fonte oficial) e travamento de versões
+A **única fonte de verdade** das dependências diretas do projeto é o arquivo `pyproject.toml` na seção `[project.dependencies]`.
+
+### Fluxo oficial
+1. **Edite dependências diretas** em `pyproject.toml`.
+2. **Regenere o lock de runtime** em `requirements.txt` com:
+
+```bash
+uv pip compile pyproject.toml --python-version 3.10 --no-header -o requirements.txt
+```
+
+3. **Sincronize o ambiente local** com as versões travadas:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+> O arquivo `requirements.txt` é gerado automaticamente a partir do `pyproject.toml` e não deve ser alterado manualmente.
 
 ## Como Executar
 ### Iniciar o Chat
