@@ -19,4 +19,4 @@ RUN mkdir -p /app/uploads /app/src/uploads
 
 EXPOSE 8080 3000
 
-CMD ["bash", "-lc", "python -m uvicorn server:app --host ${SERVER_HOST:-0.0.0.0} --port ${SERVER_PORT:-3000} & exec python src/chat_app/main.py"]
+CMD ["bash", "-lc", "python -m uvicorn src/api/server:app --host ${SERVER_HOST:-0.0.0.0} --port ${SERVER_PORT:-3000} & exec python src/chat_app/main.py"]
