@@ -10,11 +10,17 @@ Este projeto é um chat em tempo real desenvolvido em Python utilizando a biblio
 ---
 
 ## Requisitos
-Antes de executar o projeto, certifique-se de ter o Python instalado e instale as dependências necessárias:
+Antes de executar o projeto, certifique-se de ter o Python e o [uv](https://docs.astral.sh/uv/) instalados, então sincronize as dependências definidas no `pyproject.toml` (fonte única de verdade):
 
 ```bash
-pip install -r requirements.txt
+uv sync --frozen
 ```
+
+> Se precisar de `requirements.txt` para algum ambiente de deploy legado, gere automaticamente a partir do lockfile:
+>
+> ```bash
+> uv export --frozen --no-dev --format requirements-txt -o requirements.txt
+> ```
 
 ## Como Executar
 ### Iniciar o Chat
@@ -46,3 +52,14 @@ Isso disponibilizará os arquivos compartilhados no chat através de um endpoint
 - **Flet**: Framework para construção da interface gráfica
 - **Uvicorn**: Servidor ASGI para disponibilizar os arquivos compartilhados
 - **OpenAI API**: Para responder mensagens com o assistente virtual
+
+## Documentação
+- Índice geral: [`docs/README.md`](docs/README.md)
+- Domínios:
+  - [Architecture](docs/architecture/README.md)
+  - [Agents](docs/agents/README.md)
+  - [Tasks](docs/tasks/README.md)
+  - [Testing](docs/testing/README.md)
+  - [Decisions](docs/decisions/README.md)
+  - [Recommendations](docs/recommendations/README.md)
+  - [Evidence](docs/evidence/README.md)
