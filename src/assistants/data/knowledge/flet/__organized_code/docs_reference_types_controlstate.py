@@ -1,4 +1,0 @@
-ft.Radio(fill_color=ft.Colors.GREEN)
-
-ft.Radio(    fill_color={        ft.ControlState.HOVERED: ft.Colors.GREEN,        ft.ControlState.FOCUSED: ft.Colors.RED,        ft.ControlState.DEFAULT: ft.Colors.BLACK,    })
-

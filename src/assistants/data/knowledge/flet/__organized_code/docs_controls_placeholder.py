@@ -1,2 +1,0 @@
-import flet as ftdef main(page: ft.Page):    page.add(        ft.Placeholder(            expand=True,            color=ft.Colors.random_color()  # random material color        )    )ft.app(main)
-
